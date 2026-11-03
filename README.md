@@ -53,6 +53,17 @@ type Deep = Paths<MyTree, { depth: 12 }> // up to 16
 
 The depth cap is what keeps recursive types (linked lists, trees, JSON) from exploding the compiler: it bounds path length rather than failing.
 
+- **Arrays** default to dot segments. `{ arrays: 'bracket' }` writes them as `` `[${number}]` `` with no dot before them, the syntax TanStack Form and most form libraries use for field names:
+
+```ts
+type Order = { items: { sku: string }[] }
+
+type Dot = Paths<Order>
+//   ^? 'items' | `items.${number}` | `items.${number}.sku`
+type Bracket = Paths<Order, { arrays: 'bracket' }>
+//   ^? 'items' | `items[${number}]` | `items[${number}].sku`
+```
+
 ```ts
 interface Comment {
   body: string
@@ -68,13 +79,25 @@ type P = Paths<Comment, { depth: 3 }>
 
 Value type at path `P`. `P` is loosely typed (`string`): this is the fast primitive, use it internally and for one-off lookups. Tail-recursive, so deep paths are fine up to TypeScript's tail-call limit of 1000 segments.
 
-### `GetStrict<T, P extends Paths<T>>`
+`P` can use dots, brackets or both: `items.0.sku` and `items[0].sku` read the same value, and one path may mix the two. Bracket paths cost nothing extra on dot paths, because a segment is only read as brackets after it has missed.
+
+`nullish` says where the result's `null` and `undefined` come from. The default, `'leaf'`, keeps only the value's own: `Get<{ a?: { b: string } }, 'a.b'>` is `string`. `{ nullish: 'path' }` adds the `null` and `undefined` of every parent along the path, which is the type `obj.a?.b` has at runtime:
+
+```ts
+type User = { address?: { city: string } | null; meta: unknown }
+
+type A = Get<User, 'address.city'>                        // string
+type B = Get<User, 'address.city', { nullish: 'path' }>   // string | null | undefined
+type C = Get<User, 'meta.anything', { nullish: 'path' }>  // unknown (default: never)
+```
+
+### `GetStrict<T, P extends Paths<T, Opts>, Opts?>`
 
 Same resolution, but `P` is constrained to `Paths<T>`, so you get path autocomplete and invalid paths become compile errors. The constraint forces a `Paths<T>` computation, so prefer it at API boundaries that want the DX rather than in hot inner code. (If your paths already come from `Paths<T>`, this is effectively free.)
 
 > Note: a naive `Get<T, P extends Paths<T>>` does **not** compile, because the recursive tail can't be proven a sub-path. `GetStrict` is the wrapper that makes it work (strict boundary, loose recursion).
 
-`GetStrict` checks against the default depth. For a deeper cap, wrap it yourself: `type GetDeep<T, P extends Paths<T, { depth: 12 }>> = Get<T, P>`.
+`GetStrict` takes the options of both `Paths` and `Get`: `` GetStrict<Order, `items[${number}].sku`, { arrays: 'bracket'; nullish: 'path' }> `` checks the path against the bracket paths and reads the value with the whole path's nullishness. `{ depth: 12 }` raises the cap the path is checked against.
 
 ## Performance
 
