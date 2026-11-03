@@ -1,7 +1,7 @@
 /**
- * `Get<T, P, { nullish: 'carry' }>` keeps the `null` and `undefined` of every
+ * `Get<T, P, { nullish: 'path' }>` keeps the `null` and `undefined` of every
  * optional or nullable parent, the type `obj.a?.b` has at runtime. The default
- * (`'drop'`) is pinned in `composition.ts`. Pure type-level; `tsc` is the test.
+ * (`'leaf'`) is pinned in `composition.ts`. Pure type-level; `tsc` is the test.
  */
 import type { Get, GetStrict } from '../src/index';
 
@@ -11,7 +11,7 @@ type Equal<A, B> =
     : false;
 type Expect<T extends true> = T;
 
-type C = { nullish: 'carry' };
+type C = { nullish: 'path' };
 
 interface Address {
   city: string;
@@ -28,7 +28,7 @@ interface Order {
 }
 
 type _Carry = [
-  // No optional parent: same as drop.
+  // No optional parent: same as leaf.
   Expect<Equal<Get<Order, 'billing.city', C>, string>>,
   Expect<Equal<Get<Order, 'id', C>, string>>,
   // An optional or nullable leaf keeps its own nullishness in both modes.
@@ -46,7 +46,7 @@ type _Carry = [
     Equal<Get<Order, 'items[0].discounts[0].code', C>, string | undefined>
   >,
   Expect<Equal<Get<Order, 'items[0].sku', C>, string>>,
-  // Below `unknown` is unknown, in place of drop's `never`.
+  // Below `unknown` is unknown, in place of leaf's `never`.
   Expect<Equal<Get<Order, 'meta.anything', C>, unknown>>,
   Expect<Equal<Get<Order, 'loose.a.b', C>, unknown>>,
   Expect<Equal<Get<Order, 'loose.a', C>, unknown>>,

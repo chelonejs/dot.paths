@@ -261,19 +261,19 @@ export type Get<
   T,
   P extends string,
   Opts extends GetOptions = {},
-> = Opts extends { nullish: 'carry' } ? _GetCarry<T, _Dotted<P>> : _Get<T, P>;
+> = Opts extends { nullish: 'path' } ? _GetPath<T, _Dotted<P>> : _Get<T, P>;
 
 /** Options accepted by {@link Get} and {@link GetStrict}. */
 export interface GetOptions {
   /**
-   * What an optional or nullable parent does to the result. `'drop'`
-   * (default) resolves through it to the child's own type:
-   * `Get<{ a?: { b: string } }, 'a.b'>` is `string`. `'carry'` keeps the
-   * parent's `null` and `undefined`, so it is `string | undefined`, which is
-   * what reading `obj.a?.b` gives at runtime. `'carry'` also reads any path
-   * below an `unknown` or `any` value as `unknown`.
+   * Where the result's `null` and `undefined` come from. `'leaf'` (default)
+   * keeps only the value's own: `Get<{ a?: { b: string } }, 'a.b'>` is
+   * `string`. `'path'` adds those of every parent along the path, so it is
+   * `string | undefined`, which is what reading `obj.a?.b` gives at runtime.
+   * `'path'` also reads any path below an `unknown` or `any` value as
+   * `unknown`.
    */
-  nullish?: 'drop' | 'carry';
+  nullish?: 'leaf' | 'path';
 }
 
 /** The dot-mode recursion behind {@link Get}, unchanged from before options. */
@@ -282,22 +282,22 @@ type _Get<T, P extends string> = P extends `${infer H}.${infer R}`
   : _Index<T, P>;
 
 /**
- * {@link Get} with `nullish: 'carry'`. Each segment indexes the non-nullish
+ * {@link Get} with `nullish: 'path'`. Each segment indexes the non-nullish
  * part of the parent and unions back whatever `null`/`undefined` the parent
  * had (`T & (null | undefined)` is exactly that part). Written inline rather
  * than through a helper alias so hovers show the resolved union, not the
  * alias. Tail-recursive like {@link _Get}.
  */
-type _GetCarry<T, P extends string> = unknown extends T
+type _GetPath<T, P extends string> = unknown extends T
   ? unknown
   : P extends `${infer H}.${infer R}`
-    ? _GetCarry<_Index<NonNullable<T>, H> | (T & (null | undefined)), R>
+    ? _GetPath<_Index<NonNullable<T>, H> | (T & (null | undefined)), R>
     : _Index<NonNullable<T>, P> | (T & (null | undefined));
 
 /**
  * A bracket path read as a dot path: `a[0].b` is `a.0.b`, `[0].b` is `0.b`.
- * Carry mode rewrites up front, so every `?.` step is its own segment. Drop
- * mode leaves `P` alone and rewrites a segment only once it has missed (end of
+ * `nullish: 'path'` rewrites up front, so every `?.` step is its own
+ * segment. `'leaf'` leaves `P` alone and rewrites a segment only once it has missed (end of
  * {@link _IndexEach}): an up-front check here measured +8% instantiations on
  * `get`, on paths that never contain a bracket.
  */

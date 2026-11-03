@@ -81,14 +81,14 @@ Value type at path `P`. `P` is loosely typed (`string`): this is the fast primit
 
 `P` can use dots, brackets or both: `items.0.sku` and `items[0].sku` read the same value, and one path may mix the two. Bracket paths cost nothing extra on dot paths, because a segment is only read as brackets after it has missed.
 
-By default an optional or nullable parent is resolved through: `Get<{ a?: { b: string } }, 'a.b'>` is `string`. `{ nullish: 'carry' }` keeps the parent's `null` and `undefined`, which is the type `obj.a?.b` has at runtime:
+`nullish` says where the result's `null` and `undefined` come from. The default, `'leaf'`, keeps only the value's own: `Get<{ a?: { b: string } }, 'a.b'>` is `string`. `{ nullish: 'path' }` adds the `null` and `undefined` of every parent along the path, which is the type `obj.a?.b` has at runtime:
 
 ```ts
 type User = { address?: { city: string } | null; meta: unknown }
 
 type A = Get<User, 'address.city'>                        // string
-type B = Get<User, 'address.city', { nullish: 'carry' }>  // string | null | undefined
-type C = Get<User, 'meta.anything', { nullish: 'carry' }> // unknown (default: never)
+type B = Get<User, 'address.city', { nullish: 'path' }>   // string | null | undefined
+type C = Get<User, 'meta.anything', { nullish: 'path' }>  // unknown (default: never)
 ```
 
 ### `GetStrict<T, P extends Paths<T, Opts>, Opts?>`
@@ -97,7 +97,7 @@ Same resolution, but `P` is constrained to `Paths<T>`, so you get path autocompl
 
 > Note: a naive `Get<T, P extends Paths<T>>` does **not** compile, because the recursive tail can't be proven a sub-path. `GetStrict` is the wrapper that makes it work (strict boundary, loose recursion).
 
-`GetStrict` takes the options of both `Paths` and `Get`: `` GetStrict<Order, `items[${number}].sku`, { arrays: 'bracket'; nullish: 'carry' }> `` checks the path against the bracket paths and reads the value with nullish carried. `{ depth: 12 }` raises the cap the path is checked against.
+`GetStrict` takes the options of both `Paths` and `Get`: `` GetStrict<Order, `items[${number}].sku`, { arrays: 'bracket'; nullish: 'path' }> `` checks the path against the bracket paths and reads the value with the whole path's nullishness. `{ depth: 12 }` raises the cap the path is checked against.
 
 ## Performance
 
