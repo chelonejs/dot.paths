@@ -251,8 +251,17 @@ type _CapAndGetStrict = [
 ];
 // @ts-expect-error nine segments is past the default depth
 type _N1 = GetStrict<List, 'next.next.next.next.next.next.next.next.data'>;
-// @ts-expect-error GetStrict takes no depth option
-type _N2 = GetStrict<List, 'next.data', { depth: 16 }>;
+// GetStrict takes the same options as Paths, depth included.
+type _StrictDepth = Expect<
+  Equal<
+    GetStrict<
+      List,
+      'next.next.next.next.next.next.next.next.data',
+      { depth: 12 }
+    >,
+    number
+  >
+>;
 
 // A deeper strict lookup is a one-line wrapper over `Paths` with a depth.
 type GetDeep<T, P extends Paths<T, { depth: 12 }>> = Get<T, P>;
@@ -284,5 +293,6 @@ export declare const _checks: [
   _MutualRecursion,
   _CapAndGetStrict,
   _DeepWrapper,
+  _StrictDepth,
 ];
-export type { _N1, _N2, _N3 };
+export type { _N1, _N3 };

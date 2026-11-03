@@ -128,6 +128,12 @@ export interface PathsOptions {
    * risks TypeScript's own recursion limit on pathological types.
    */
   depth?: _Depth;
+  /**
+   * How an array element is written. `'dot'` (default) is `items.0.sku`;
+   * `'bracket'` is `items[0].sku`, the syntax of TanStack Form's `DeepKeys`
+   * and of most form libraries' field names.
+   */
+  arrays?: 'dot' | 'bracket';
 }
 
 /**
@@ -185,17 +191,54 @@ type _Paths<T, _D extends number> = _D extends 0
  * type P = Paths<{ user: { name: string }; tags: string[] }>;
  * //   ^? 'user' | 'user.name' | 'tags' | `tags.${number}`
  */
-export type Paths<T, Opts extends PathsOptions = {}> = _Paths<
-  T,
-  Opts extends { depth: infer D extends number } ? D : 8
->;
+export type Paths<T, Opts extends PathsOptions = {}> = Opts extends {
+  arrays: 'bracket';
+}
+  ? _StripDot<
+      _BracketTails<T, Opts extends { depth: infer D extends number } ? D : 8>
+    >
+  : _Paths<T, Opts extends { depth: infer D extends number } ? D : 8>;
+
+/**
+ * Bracket-mode worker. A separate copy of {@link _Paths} so the default dot
+ * mode keeps every measured optimisation above untouched. It returns tails
+ * that carry their own separator, `.${K}` for a key and `[${number}]` for an
+ * element, so joining a child is plain concatenation and no node has to ask
+ * whether its child is an array. {@link _StripDot} drops the leading `.` once,
+ * on the finished union.
+ */
+type _BracketTails<T, _D extends number> = _D extends 0
+  ? never
+  : T extends _Leaf
+    ? never
+    : T extends readonly unknown[]
+      ? T extends readonly []
+        ? never
+        : _BracketEntry<
+            `[${number}]`,
+            _BracketTails<NonNullable<T[number]>, _Prev[_D]>
+          >
+      : {
+          [K in keyof T & (string | number)]: _BracketEntry<
+            `.${K}`,
+            _BracketTails<NonNullable<T[K]>, _Prev[_D]>
+          >;
+        }[keyof T & (string | number)];
+
+/** {@link _Entry} for tails: the head already holds its separator. */
+type _BracketEntry<Head extends string, Sub> = [Sub] extends [never]
+  ? Head
+  : Head | `${Head}${Sub & string}`;
+
+type _StripDot<S> = S extends `.${infer R}` ? R : S;
 
 // ==========================================
 // Value resolution
 // ==========================================
 
 /**
- * Resolves the value type at dot-notation path `P` within `T`. `P` is loosely
+ * Resolves the value type at path `P` within `T`, written with dots
+ * (`items.0.sku`), brackets (`items[0].sku`) or both. `P` is loosely
  * typed (`string`): fast, and the right primitive for internal use and
  * one-off lookups. For path autocomplete / invalid-path errors at the call
  * site, use {@link GetStrict}.
@@ -212,9 +255,19 @@ export type Paths<T, Opts extends PathsOptions = {}> = _Paths<
  * type V = Get<{ user: { name: string } }, 'user.name'>;
  * //   ^? string
  */
-export type Get<T, P extends string> = P extends `${infer H}.${infer R}`
-  ? Get<_Index<T, H>, R>
+export type Get<T, P extends string> = _Get<T, P>;
+
+/** The recursion behind {@link Get}. */
+type _Get<T, P extends string> = P extends `${infer H}.${infer R}`
+  ? _Get<_Index<T, H>, R>
   : _Index<T, P>;
+
+/** A bracket path read as a dot path: `a[0].b` is `a.0.b`, `[0].b` is `0.b`. */
+type _Unbracket<P extends string> = P extends `${infer A}[${infer I}]${infer R}`
+  ? _Unbracket<`${A}.${I}${R}`>
+  : P extends `.${infer R}`
+    ? R
+    : P;
 
 /**
  * Resolve one path segment. The hit path probes the key intersection
@@ -259,7 +312,8 @@ type _Index<T, K extends string> = [K & keyof T] extends [never]
  * (`'red'`), and neither `'red' & Color` nor `'red' extends Color` holds, so
  * the keys are remapped to their string form. Object members only, since a
  * primitive's `keyof` is fifty method names. Whole chain measured within
- * noise on `get`, `combined` and `recursive`.
+ * noise on `get`, `combined` and `recursive`. A segment that still misses and
+ * holds a `[` (`items[0]`) is a bracket path, read again as dots.
  */
 type _IndexEach<T, K extends string> = T extends unknown
   ? K extends keyof T
@@ -270,7 +324,9 @@ type _IndexEach<T, K extends string> = T extends unknown
         : T extends object
           ? K extends keyof _StringKeyed<T>
             ? _StringKeyed<T>[K]
-            : never
+            : K extends `${string}[${string}`
+              ? _Get<T, _Unbracket<K>>
+              : never
           : never
       : _ToNum<K> extends keyof T
         ? T[_ToNum<K>]
@@ -289,4 +345,8 @@ type _StringKeyed<T> = { [P in keyof T as `${P & (string | number)}`]: T[P] };
  * type V = GetStrict<{ user: { name: string } }, 'user.name'>; // string
  * type E = GetStrict<{ user: { name: string } }, 'user.xyz'>;  // compile error
  */
-export type GetStrict<T, P extends Paths<T>> = Get<T, P>;
+export type GetStrict<
+  T,
+  P extends Paths<T, Opts>,
+  Opts extends PathsOptions = {},
+> = Get<T, P>;
