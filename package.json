@@ -16,13 +16,13 @@
     "type-safe",
     "utility-types"
   ],
-  "homepage": "https://github.com/TurtIeSocks/dot.paths#readme",
+  "homepage": "https://github.com/chelonejs/dot.paths#readme",
   "bugs": {
-    "url": "https://github.com/TurtIeSocks/dot.paths/issues"
+    "url": "https://github.com/chelonejs/dot.paths/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/TurtIeSocks/dot.paths.git"
+    "url": "git+https://github.com/chelonejs/dot.paths.git"
   },
   "author": "Rin",
   "license": "MIT",

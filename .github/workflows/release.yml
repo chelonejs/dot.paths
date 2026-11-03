@@ -8,7 +8,7 @@ name: Release
 #   1. Publish v1 ONCE to create the package — easiest from your machine:
 #        npm login && npm publish        (prepublishOnly runs the build)
 #   2. npmjs.com → the package → Settings → Trusted Publisher → add
-#      GitHub Actions: repo `TurtIeSocks/dot.paths`, workflow `release.yml`.
+#      GitHub Actions: repo `chelonejs/dot.paths`, workflow `release.yml`.
 #   3. After that, every GitHub Release runs this workflow and publishes via
 #      OIDC. Cut a release: bump "version" in package.json, tag, publish a
 #      GitHub Release for the tag.
