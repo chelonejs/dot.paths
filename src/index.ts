@@ -255,14 +255,54 @@ type _StripDot<S> = S extends `.${infer R}` ? R : S;
  * type V = Get<{ user: { name: string } }, 'user.name'>;
  * //   ^? string
  */
-export type Get<T, P extends string> = _Get<T, P>;
+export type Get<
+  T,
+  P extends string,
+  Opts extends GetOptions = {},
+> = Opts extends { nullish: 'carry' } ? _GetCarry<T, _Dotted<P>> : _Get<T, P>;
 
-/** The recursion behind {@link Get}. */
+/** Options accepted by {@link Get} and {@link GetStrict}. */
+export interface GetOptions {
+  /**
+   * What an optional or nullable parent does to the result. `'drop'`
+   * (default) resolves through it to the child's own type:
+   * `Get<{ a?: { b: string } }, 'a.b'>` is `string`. `'carry'` keeps the
+   * parent's `null` and `undefined`, so it is `string | undefined`, which is
+   * what reading `obj.a?.b` gives at runtime. `'carry'` also reads any path
+   * below an `unknown` or `any` value as `unknown`.
+   */
+  nullish?: 'drop' | 'carry';
+}
+
+/** The dot-mode recursion behind {@link Get}, unchanged from before options. */
 type _Get<T, P extends string> = P extends `${infer H}.${infer R}`
   ? _Get<_Index<T, H>, R>
   : _Index<T, P>;
 
-/** A bracket path read as a dot path: `a[0].b` is `a.0.b`, `[0].b` is `0.b`. */
+/**
+ * {@link Get} with `nullish: 'carry'`. Each segment indexes the non-nullish
+ * part of the parent and unions back whatever `null`/`undefined` the parent
+ * had (`T & (null | undefined)` is exactly that part). Written inline rather
+ * than through a helper alias so hovers show the resolved union, not the
+ * alias. Tail-recursive like {@link _Get}.
+ */
+type _GetCarry<T, P extends string> = unknown extends T
+  ? unknown
+  : P extends `${infer H}.${infer R}`
+    ? _GetCarry<_Index<NonNullable<T>, H> | (T & (null | undefined)), R>
+    : _Index<NonNullable<T>, P> | (T & (null | undefined));
+
+/**
+ * A bracket path read as a dot path: `a[0].b` is `a.0.b`, `[0].b` is `0.b`.
+ * Carry mode rewrites up front, so every `?.` step is its own segment. Drop
+ * mode leaves `P` alone and rewrites a segment only once it has missed (end of
+ * {@link _IndexEach}): an up-front check here measured +8% instantiations on
+ * `get`, on paths that never contain a bracket.
+ */
+type _Dotted<P extends string> = P extends `${string}[${string}`
+  ? _Unbracket<P>
+  : P;
+
 type _Unbracket<P extends string> = P extends `${infer A}[${infer I}]${infer R}`
   ? _Unbracket<`${A}.${I}${R}`>
   : P extends `.${infer R}`
@@ -348,5 +388,5 @@ type _StringKeyed<T> = { [P in keyof T as `${P & (string | number)}`]: T[P] };
 export type GetStrict<
   T,
   P extends Paths<T, Opts>,
-  Opts extends PathsOptions = {},
-> = Get<T, P>;
+  Opts extends PathsOptions & GetOptions = {},
+> = Get<T, P, Opts>;
