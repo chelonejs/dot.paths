@@ -43,7 +43,7 @@
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts --clean",
     "typecheck": "tsc --noEmit",
-    "test": "tsc --noEmit",
+    "test": "tsc --noEmit && tsc --noEmit -p test/lib-es2020",
     "lint": "biome check src test",
     "format": "biome format --write src test",
     "typeperf": "node bench/typeperf.mjs",

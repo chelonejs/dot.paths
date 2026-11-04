@@ -37,6 +37,8 @@ npm i -D dot.paths
 
 (Type-only, so install it as a dev dependency.)
 
+The types need `lib` ES2020 or later in your `tsconfig.json`.
+
 ## API
 
 ### `Paths<T, Opts?>`
