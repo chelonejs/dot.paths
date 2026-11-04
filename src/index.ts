@@ -22,6 +22,10 @@
  * `ArrayBufferView` covers every typed array and `DataView`. `T extends _Leaf`
  * runs once per node; growing the list from 13 to 22 members measured +27
  * instantiations on `paths`, nothing on check time.
+ *
+ * Every name here must exist in lib ES2020: under `skipLibCheck` a missing
+ * global is `any`, which turns every path type into `any` without an error.
+ * `WeakRef` is ES2021, so it is matched by shape instead.
  */
 type _Leaf =
   | string
@@ -39,7 +43,7 @@ type _Leaf =
   | ReadonlySet<unknown>
   | WeakMap<object, unknown>
   | WeakSet<object>
-  | WeakRef<object>
+  | { deref(): object | undefined; readonly [Symbol.toStringTag]: 'WeakRef' }
   | Promise<unknown>
   | ArrayBuffer
   | SharedArrayBuffer
