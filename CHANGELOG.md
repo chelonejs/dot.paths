@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.1](https://github.com/chelonejs/dot.paths/compare/v0.2.0...v0.2.1) (2026-11-04)
+
+
+### Bug Fixes
+
+* Paths and Get keep their types under lib ES2020 ([5e44362](https://github.com/chelonejs/dot.paths/commit/5e443625cb710993907c7296c6c880fed9e786ac))
+* Paths and Get keep their types under lib ES2020 ([88c29e0](https://github.com/chelonejs/dot.paths/commit/88c29e00048df83d3644965fc17cda502bd1ad22)), closes [#6](https://github.com/chelonejs/dot.paths/issues/6)
+
 ## [0.2.0](https://github.com/chelonejs/dot.paths/compare/v0.1.2...v0.2.0) (2026-11-03)
 
 
