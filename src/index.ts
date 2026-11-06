@@ -273,7 +273,11 @@ export type Get<
   T,
   P extends string,
   Opts extends GetOptions = {},
-> = Opts extends { nullish: 'path' } ? _GetPath<T, _Dotted<P>> : _Get<T, P>;
+> = Opts extends { nullish: 'path' }
+  ? string extends P
+    ? unknown
+    : _GetPath<T, _Dotted<P>>
+  : _Get<T, P>;
 
 /** Options accepted by {@link Get} and {@link GetStrict}. */
 export interface GetOptions {
@@ -283,7 +287,7 @@ export interface GetOptions {
    * `string`. `'path'` adds those of every parent along the path, so it is
    * `string | undefined`, which is what reading `obj.a?.b` gives at runtime.
    * `'path'` also reads any path below an `unknown` or `any` value as
-   * `unknown`.
+   * `unknown`, and a bare `string` path as `unknown`, since it names no depth.
    */
   nullish?: 'leaf' | 'path';
 }
