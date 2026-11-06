@@ -97,11 +97,42 @@ type _N1 = GetStrict<Order, `items.${number}.sku`, B>;
 // @ts-expect-error a bracket path is not a dot-mode path
 type _N2 = GetStrict<Order, `items[${number}].sku`>;
 
+// An `any` member is the wildcard it is in dot mode, in either syntax below it.
+type _AnyWildcard = [
+  Expect<Equal<Paths<any, B>, string>>,
+  Expect<
+    Equal<
+      Paths<{ raw: any }, B>,
+      'raw' | `raw.${string}` | `raw[${number}]${string}`
+    >
+  >,
+  Expect<
+    Equal<
+      Paths<any[], B>,
+      | `[${number}]`
+      | `[${number}].${string}`
+      | `[${number}][${number}]${string}`
+    >
+  >,
+  Expect<
+    Equal<
+      Paths<{ a: { raw: any }; id: string }, B>,
+      'a' | 'id' | 'a.raw' | `a.raw.${string}` | `a.raw[${number}]${string}`
+    >
+  >,
+  Expect<Equal<GetStrict<{ raw: any }, 'raw.a', B>, any>>,
+  Expect<Equal<GetStrict<{ raw: any }, 'raw[0].a[1]', B>, any>>,
+];
+// @ts-expect-error the wildcard sits below `raw`, not beside it
+type _N3 = GetStrict<{ raw: any }, 'rawr', B>;
+
 export type {
+  _AnyWildcard,
   _Enumeration,
   _GetReadsBrackets,
   _GetStrictBrackets,
   _N1,
   _N2,
+  _N3,
   _Recursive,
 };

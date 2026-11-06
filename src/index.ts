@@ -210,6 +210,12 @@ export type Paths<T, Opts extends PathsOptions = {}> = Opts extends {
  * top-level key has no leading `.`. Stripping that dot from the finished
  * union instead, with a distributive conditional in this branch, measured
  * +12% check time on dot-mode `Paths` calls that never take the branch.
+ *
+ * `any` takes both sides of `T extends _Leaf`, so the wildcard check sits on
+ * the false side, where a primitive leaf never pays for it. Without it `any`
+ * walks on: `.${string}` and `[${number}]` are disjoint tails, where dot mode's
+ * `${string}` absorbs the rest, so each level multiplied them into 3,280
+ * patterns per `any` member at the default depth.
  */
 type _BracketTails<
   T,
@@ -219,19 +225,21 @@ type _BracketTails<
   ? never
   : T extends _Leaf
     ? never
-    : T extends readonly unknown[]
-      ? T extends readonly []
-        ? never
-        : _BracketEntry<
-            `[${number}]`,
-            _BracketTails<NonNullable<T[number]>, _Prev[_D]>
-          >
-      : {
-          [K in keyof T & (string | number)]: _BracketEntry<
-            `${_Dot}${K}`,
-            _BracketTails<NonNullable<T[K]>, _Prev[_D]>
-          >;
-        }[keyof T & (string | number)];
+    : 0 extends 1 & T
+      ? `${_Dot}${string}` | `[${number}]${string}`
+      : T extends readonly unknown[]
+        ? T extends readonly []
+          ? never
+          : _BracketEntry<
+              `[${number}]`,
+              _BracketTails<NonNullable<T[number]>, _Prev[_D]>
+            >
+        : {
+            [K in keyof T & (string | number)]: _BracketEntry<
+              `${_Dot}${K}`,
+              _BracketTails<NonNullable<T[K]>, _Prev[_D]>
+            >;
+          }[keyof T & (string | number)];
 
 /** {@link _Entry} for tails: the head already holds its separator. */
 type _BracketEntry<Head extends string, Sub> = [Sub] extends [never]
@@ -265,7 +273,11 @@ export type Get<
   T,
   P extends string,
   Opts extends GetOptions = {},
-> = Opts extends { nullish: 'path' } ? _GetPath<T, _Dotted<P>> : _Get<T, P>;
+> = Opts extends { nullish: 'path' }
+  ? string extends P
+    ? unknown
+    : _GetPath<T, _Dotted<P>>
+  : _Get<T, P>;
 
 /** Options accepted by {@link Get} and {@link GetStrict}. */
 export interface GetOptions {
@@ -275,7 +287,7 @@ export interface GetOptions {
    * `string`. `'path'` adds those of every parent along the path, so it is
    * `string | undefined`, which is what reading `obj.a?.b` gives at runtime.
    * `'path'` also reads any path below an `unknown` or `any` value as
-   * `unknown`.
+   * `unknown`, and a bare `string` path as `unknown`, since it names no depth.
    */
   nullish?: 'leaf' | 'path';
 }

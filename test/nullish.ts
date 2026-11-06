@@ -70,4 +70,13 @@ type _StrictCarry = [
   >,
 ];
 
-export type { _Carry, _StrictCarry };
+// A bare `string` names no path, so nothing says how deep it reads.
+type _BareString = [
+  Expect<Equal<Get<Order, string, C>, unknown>>,
+  Expect<Equal<Get<{ a?: { b: string }; c: number }, string, C>, unknown>>,
+  Expect<Equal<Get<Order, `${string}`, C>, unknown>>,
+  // A template that names part of a path is still a path.
+  Expect<Equal<Get<Order, `items[${number}].sku`, C>, string>>,
+];
+
+export type { _BareString, _Carry, _StrictCarry };
