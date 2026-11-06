@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.2.2](https://github.com/chelonejs/dot.paths/compare/v0.2.1...v0.2.2) (2026-11-06)
+
+
+### Bug Fixes
+
+* an any member stays a wildcard in bracket mode ([d8c1e75](https://github.com/chelonejs/dot.paths/commit/d8c1e7539f59a96b7ac3af3c5b16b0d7cad6de25))
+* bracket any wildcard, and Get reads a bare string path as unknown ([16917e5](https://github.com/chelonejs/dot.paths/commit/16917e5fae99a1aa2e36adf7dd07d66cb0d6603c))
+* Get with nullish path reads a bare string path as unknown ([8c97c2d](https://github.com/chelonejs/dot.paths/commit/8c97c2dae89698e2d19a6ceacc72a0b8af3d0aca))
+
 ## [0.2.1](https://github.com/chelonejs/dot.paths/compare/v0.2.0...v0.2.1) (2026-11-04)
 
 
