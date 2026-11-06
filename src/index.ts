@@ -210,6 +210,12 @@ export type Paths<T, Opts extends PathsOptions = {}> = Opts extends {
  * top-level key has no leading `.`. Stripping that dot from the finished
  * union instead, with a distributive conditional in this branch, measured
  * +12% check time on dot-mode `Paths` calls that never take the branch.
+ *
+ * `any` takes both sides of `T extends _Leaf`, so the wildcard check sits on
+ * the false side, where a primitive leaf never pays for it. Without it `any`
+ * walks on: `.${string}` and `[${number}]` are disjoint tails, where dot mode's
+ * `${string}` absorbs the rest, so each level multiplied them into 3,280
+ * patterns per `any` member at the default depth.
  */
 type _BracketTails<
   T,
@@ -219,19 +225,21 @@ type _BracketTails<
   ? never
   : T extends _Leaf
     ? never
-    : T extends readonly unknown[]
-      ? T extends readonly []
-        ? never
-        : _BracketEntry<
-            `[${number}]`,
-            _BracketTails<NonNullable<T[number]>, _Prev[_D]>
-          >
-      : {
-          [K in keyof T & (string | number)]: _BracketEntry<
-            `${_Dot}${K}`,
-            _BracketTails<NonNullable<T[K]>, _Prev[_D]>
-          >;
-        }[keyof T & (string | number)];
+    : 0 extends 1 & T
+      ? `${_Dot}${string}` | `[${number}]${string}`
+      : T extends readonly unknown[]
+        ? T extends readonly []
+          ? never
+          : _BracketEntry<
+              `[${number}]`,
+              _BracketTails<NonNullable<T[number]>, _Prev[_D]>
+            >
+        : {
+            [K in keyof T & (string | number)]: _BracketEntry<
+              `${_Dot}${K}`,
+              _BracketTails<NonNullable<T[K]>, _Prev[_D]>
+            >;
+          }[keyof T & (string | number)];
 
 /** {@link _Entry} for tails: the head already holds its separator. */
 type _BracketEntry<Head extends string, Sub> = [Sub] extends [never]
