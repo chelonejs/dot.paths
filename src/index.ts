@@ -358,6 +358,20 @@ type _Index<T, K extends string> = [K & keyof T] extends [never]
   : T[K & keyof T];
 
 /**
+ * The bracket retry at the end of {@link _IndexEach}: a dot path walked with
+ * `Brackets` off, so it cannot reach that retry again. Re-entering
+ * {@link _Get} closed a cycle (`_IndexEach` → `_Get` → `_Index` →
+ * `_IndexEach`) that TypeScript unrolls until ts(2589) whenever `P` is still
+ * a type parameter, as in `setPath<P>(path: P, value: Get<T, P>)`. Calls
+ * `_IndexEach` directly, skipping `_Index`'s fused whole-type check: this
+ * path is rare, and every alias declared here is a fixed cost on every
+ * compile (an `_Index` twin measured +50 instantiations, this +30).
+ */
+type _GetDotted<T, P extends string> = P extends `${infer H}.${infer R}`
+  ? _GetDotted<_IndexEach<T, H, false>, R>
+  : _IndexEach<T, P, false>;
+
+/**
  * Per-member retry for a segment that missed on the whole type. Assignability
  * (`K extends keyof T`) rather than the intersection guard, because a wide
  * `` `${string}` `` segment intersects every method name of a primitive or
@@ -371,9 +385,16 @@ type _Index<T, K extends string> = [K & keyof T] extends [never]
  * the keys are remapped to their string form. Object members only, since a
  * primitive's `keyof` is fifty method names. Whole chain measured within
  * noise on `get`, `combined` and `recursive`. A segment that still misses and
- * holds a `[` (`items[0]`) is a bracket path, read again as dots.
+ * holds a `[` (`items[0]`) is a bracket path, read again as dots through
+ * {@link _GetDotted}. `Brackets` is off inside that read, which is what ends
+ * the recursion. Threading the flag through `_Get` and `_Index` instead
+ * measured +6% instantiations on `get`, so only this miss path carries it.
  */
-type _IndexEach<T, K extends string> = T extends unknown
+type _IndexEach<
+  T,
+  K extends string,
+  Brackets extends boolean = true,
+> = T extends unknown
   ? K extends keyof T
     ? T[K]
     : [_ToNum<K>] extends [never]
@@ -383,7 +404,9 @@ type _IndexEach<T, K extends string> = T extends unknown
           ? K extends keyof _StringKeyed<T>
             ? _StringKeyed<T>[K]
             : K extends `${string}[${string}`
-              ? _Get<T, _Unbracket<K>>
+              ? Brackets extends true
+                ? _GetDotted<T, _Unbracket<K>>
+                : never
               : never
           : never
       : _ToNum<K> extends keyof T
