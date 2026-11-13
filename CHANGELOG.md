@@ -5,7 +5,6 @@
 
 ### Bug Fixes
 
-* Get no longer hits ts(2589) when inferred through a generic path ([4e6e67e](https://github.com/chelonejs/dot.paths/commit/4e6e67e4d7c5e2278497fe42c2ffd54169fa797a))
 * Get no longer hits ts(2589) when inferred through a generic path ([a94785c](https://github.com/chelonejs/dot.paths/commit/a94785c132c525878db4ccdf228838d73e5be73c))
 
 ## [0.2.2](https://github.com/chelonejs/dot.paths/compare/v0.2.1...v0.2.2) (2026-11-06)
