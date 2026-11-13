@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.3](https://github.com/chelonejs/dot.paths/compare/v0.2.2...v0.2.3) (2026-11-13)
+
+
+### Bug Fixes
+
+* Get no longer hits ts(2589) when inferred through a generic path ([a94785c](https://github.com/chelonejs/dot.paths/commit/a94785c132c525878db4ccdf228838d73e5be73c))
+
 ## [0.2.2](https://github.com/chelonejs/dot.paths/compare/v0.2.1...v0.2.2) (2026-11-06)
 
 
